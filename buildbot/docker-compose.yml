@@ -1,0 +1,38 @@
+version: '2'
+services:
+  buildbot:
+    image: buildbot/buildbot-master:master
+    env_file:
+      - db.env
+    environment:
+      - BUILDBOT_CONFIG_DIR=config
+      - BUILDBOT_CONFIG_URL=http://172.17.0.1:3000/gitadmin/catweb/raw/master/buildbot/master.cfg
+      - BUILDBOT_WORKER_PORT=9989
+      - BUILDBOT_WEB_URL=https://master-8010-${INSTRUQT_PARTICIPANT_ID}.${INSTRUQT_PARTICIPANTS_DNS}/
+      - BUILDBOT_WEB_PORT=tcp:port=8010
+    links:
+      - db
+    depends_on:
+      - db
+    ports:
+      - "8010:8010"
+  db:
+    env_file:
+      - db.env
+    image: "postgres:9.4"
+    expose:
+      - 5432
+
+  worker:
+    image: "nuaware/buildbot-worker:master"
+    environment:
+      BUILDMASTER: buildbot
+      BUILDMASTER_PORT: 9989
+      WORKERNAME: buildbot-worker
+      WORKERPASS: pass
+      WORKER_ENVIRONMENT_BLACKLIST: DOCKER_BUILDBOT* BUILDBOT_ENV_* BUILDBOT_1* WORKER_ENVIRONMENT_BLACKLIST
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.kube:/root/hostmount/.kube
+    links:
+      - buildbot
